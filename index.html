@@ -12,7 +12,7 @@ const SORTEO   = new Date('2026-11-28T22:00:00-05:00');
 const TOTAL    = 500;
 const POR_PAG  = 50;
 const REFRESCO = 60000;
-const SEMILLA  = 2026; // solo se usa si no hay conexión con el Sheet
+const CLAVE    = 'rifa_snapshot_v1'; // última respuesta real de la hoja (localStorage)
 /* =========================== */
 /* La consulta a la hoja arranca ya, sin esperar a fuentes ni estilos */
 function leerHoja() {
@@ -206,40 +206,64 @@ const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(3, '0');
 let boletas = [], pagina = 0, filtro = null, actual = null;
 
-/* Respaldo: reparto fijo de los 1000 números (misma semilla = mismo reparto siempre) */
-function respaldo() {
-  let a = SEMILLA;
-  const rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  const n = Array.from({ length: 1000 }, (_, i) => i);
-  for (let i = 999; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [n[i], n[j]] = [n[j], n[i]]; }
-  return Array.from({ length: TOTAL }, (_, i) => ({ b: pad(i + 1), n: [pad(n[2*i]), pad(n[2*i+1])], e: 'disponible' }));
+/* Copia de la última respuesta REAL de la hoja; se sobrescribe en cada carga exitosa */
+function guardarCopia(d) {
+  try { localStorage.setItem(CLAVE, JSON.stringify({ boletas: d.boletas, actualizado: d.actualizado })); } catch (e) {}
 }
+function leerCopia() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CLAVE));
+    return c && Array.isArray(c.boletas) && c.boletas.length ? c : null;
+  } catch (e) { return null; }
+}
+const aBoletas = raw => raw.map(([b, n1, n2, e]) => ({ b: pad(b), n: [pad(n1), pad(n2)], e: e || 'disponible' }));
 
 async function cargar() {
   try {
     if (API_URL.startsWith('PEGA_')) throw new Error('Falta pegar la URL del Apps Script en API_URL.');
-    const d = await (PRE || leerHoja());
-    PRE = null;
-    boletas = d.boletas.map(([b, n1, n2, e]) => ({ b: pad(b), n: [pad(n1), pad(n2)], e: e || 'disponible' }));
+    const p = PRE || leerHoja();
+    PRE = null; // siempre se descarta, para que el siguiente intento consulte de nuevo
+    const d = await p;
+    boletas = aBoletas(d.boletas);
+    guardarCopia(d);
     $('err').style.display = 'none';
     $('upd').textContent = 'Actualizado: ' + new Date(d.actualizado).toLocaleString('es-CO');
   } catch (e) {
-    if (!boletas.length) boletas = respaldo();
+    PRE = null;
+    let desde = '';
+    if (!boletas.length) {
+      const c = leerCopia();
+      if (c) { boletas = aBoletas(c.boletas); desde = c.actualizado ? ' (' + new Date(c.actualizado).toLocaleString('es-CO') + ')' : ''; }
+    }
     $('err').style.display = 'block';
-    $('err').textContent = 'No pudimos leer el estado desde la hoja, por eso no vemos las boletas vendidas. ' + e.message;
-    $('upd').textContent = 'Sin conexión con la hoja';
+    if (boletas.length) {
+      $('err').textContent = 'No pudimos conectar con la hoja. Mostramos los últimos datos guardados' + desde + ' y pueden estar desactualizados. ' + e.message;
+      $('upd').textContent = 'Sin conexión con la hoja · datos guardados';
+    } else {
+      $('err').textContent = 'No pudimos cargar las boletas. Por favor recarga la página. ' + e.message;
+      $('upd').textContent = 'Sin conexión con la hoja';
+    }
   }
   stats(); pintar();
 }
 
 function stats() {
+  if (!boletas.length) {
+    ['sVend', 'sRes', 'sDisp'].forEach(i => $(i).textContent = '–');
+    $('bar').style.width = '0%';
+    return;
+  }
   const v = boletas.filter(x => x.e === 'vendida').length, r = boletas.filter(x => x.e === 'reservada').length;
   $('sVend').textContent = v; $('sRes').textContent = r; $('sDisp').textContent = TOTAL - v - r;
   $('bar').style.width = ((v + r) / TOTAL * 100) + '%';
 }
 
 function pintar() {
+  if (!boletas.length) {
+    $('grid').innerHTML = '<p style="grid-column:1/-1;text-align:center;font-weight:700">No pudimos cargar las boletas. Por favor recarga la página.</p>';
+    $('pager').style.display = 'none'; $('clr').style.display = 'none';
+    return;
+  }
   const lista = filtro ? boletas.filter(x => x.n.includes(filtro)) : boletas.slice(pagina * POR_PAG, (pagina + 1) * POR_PAG);
   const g = $('grid'); g.innerHTML = '';
   lista.forEach(x => {
@@ -266,6 +290,7 @@ $('next').onclick = () => { pagina = (pagina + 1) % (TOTAL/POR_PAG); pintar(); }
 
 function buscar() {
   const v = $('q').value.replace(/\D/g, '');
+  if (!boletas.length) { $('msg').textContent = 'Recarga la página para cargar las boletas.'; return; }
   if (!v) { $('msg').textContent = 'Escribe un número de 1 a 3 cifras.'; return; }
   filtro = pad(v);
   const res = boletas.filter(x => x.n.includes(filtro));
