@@ -21,7 +21,7 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             position: relative;
         }
-        /* Botón de administrador totalmente invisible en la esquina superior derecha */
+        /* Botón de administrador invisible en la esquina superior derecha */
         .secret-admin-btn {
             position: absolute;
             top: 15px;
@@ -183,18 +183,26 @@
     const tuNumeroWhatsApp = "573144781103"; // ⚠️ Cambia por tu número de WhatsApp
     let isAdmin = false;
 
-    let tickets = JSON.parse(localStorage.getItem('rifa_macbook_secret'));
-
-    if (!tickets) {
-        tickets = [];
+    // Generador basado en una semilla matemática fija para que NUNCA cambien los números, 
+    // sin importar cuántas veces se limpie la caché o se abra en incógnito.
+    function generarBoletasFijasEstables() {
         let availableNumbers = [];
         for (let i = 0; i <= 999; i++) {
             availableNumbers.push(String(i).padStart(3, '0'));
         }
-        availableNumbers.sort(() => Math.random() - 0.5);
 
+        // Algoritmo de mezcla determinista (Se usa una semilla fija en vez de Math.random puro)
+        let seed = 42; 
+        function pseudoRandom() {
+            let x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        availableNumbers.sort(() => pseudoRandom() - 0.5);
+
+        let generated = [];
         for (let i = 1; i <= 500; i++) {
-            tickets.push({
+            generated.push({
                 id: i,
                 displayId: `Boleta #${String(i).padStart(3, '0')}`,
                 n1: availableNumbers.pop(),
@@ -202,8 +210,19 @@
                 sold: false
             });
         }
-        localStorage.setItem('rifa_macbook_secret', JSON.stringify(tickets));
+        return generated;
     }
+
+    // Cargamos la estructura base fija
+    let tickets = generarBoletasFijasEstables();
+
+    // Recuperamos únicamente el estado de "Vendidas" que tú hayas marcado con tu botón secreto
+    let soldStatus = JSON.parse(localStorage.getItem('rifa_macbook_sold_status')) || {};
+    tickets.forEach(t => {
+        if (soldStatus[t.id]) {
+            t.sold = true;
+        }
+    });
 
     const grid = document.getElementById('ticketGrid');
 
@@ -248,7 +267,11 @@
         const ticket = tickets.find(t => t.id === id);
         if (ticket) {
             ticket.sold = !ticket.sold;
-            localStorage.setItem('rifa_macbook_secret', JSON.stringify(tickets));
+            
+            // Guardamos solo qué boletas están vendidas para no alterar los números fijos
+            soldStatus[id] = ticket.sold;
+            localStorage.setItem('rifa_macbook_sold_status', JSON.stringify(soldStatus));
+            
             filterTickets();
         }
     }
@@ -256,7 +279,7 @@
     function toggleAdmin() {
         if (!isAdmin) {
             const pass = prompt("Contraseña de administrador:");
-            if (pass === "admin1234") { // Puedes cambiar tu contraseña aquí
+            if (pass === "admin1234") {
                 isAdmin = true;
                 alert("Modo Administrador activado. Haz clic en cualquier tarjeta para marcarla como Vendida o Disponible.");
             } else if (pass !== null) {
