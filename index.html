@@ -21,19 +21,17 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             position: relative;
         }
-        .admin-bar {
-            text-align: right;
-            margin-bottom: 5px;
-        }
-        .btn-admin {
-            background-color: #e67e22;
-            color: white;
+        /* Botón de administrador totalmente invisible en la esquina superior derecha */
+        .secret-admin-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: transparent;
             border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
+            z-index: 10;
         }
         .banner {
             background: linear-gradient(135deg, #11998e, #38ef7d);
@@ -48,7 +46,6 @@
             margin: 0;
             font-size: 28px;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
         .banner h2 {
             margin: 8px 0;
@@ -92,7 +89,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
             gap: 15px;
-            max-height: 450px;
+            max-height: 480px;
             overflow-y: auto;
             padding: 10px;
             border: 1px solid #ecf0f1;
@@ -110,9 +107,6 @@
             flex-direction: column;
             justify-content: space-between;
             transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-2px);
         }
         .card.sold {
             background: #f8d7da;
@@ -161,9 +155,8 @@
 <body>
 
 <div class="container">
-    <div class="admin-bar">
-        <button class="btn-admin" onclick="toggleAdmin()">🔒 Modo Administrador</button>
-    </div>
+    <!-- Botón secreto invisible en la esquina superior derecha -->
+    <button class="secret-admin-btn" onclick="toggleAdmin()" title=""></button>
 
     <div class="banner">
         <h1>🎟️ Gran Rifa Pro</h1>
@@ -173,11 +166,11 @@
 
     <div class="details-box">
         <div>📅 Sorteo: 28 Nov 2026[cite: 1]</div>
-        <div>🎰 Juega con: Lotería de Boyacá[cite: 1]</div>
+        <div>🎰 Lotería de Boyacá[cite: 1]</div>
         <div>💰 Valor: $15.000[cite: 1]</div>
     </div>
 
-    <p style="text-align: center; color: #555;">Busca tu número de boleta o cifra y haz clic en apartar:</p>
+    <p style="text-align: center; color: #555;">Busca tu número de boleta o cifra y apártala por WhatsApp:</p>
     
     <div class="search-box">
         <input type="text" id="searchInput" placeholder="Ej. Boleta #012 o número 451..." onkeyup="filterTickets()">
@@ -187,10 +180,10 @@
 </div>
 
 <script>
-    const tuNumeroWhatsApp = "573144781103"; // ⚠️ Reemplaza con tu número de WhatsApp
+    const tuNumeroWhatsApp = "573144781103"; // ⚠️ Cambia por tu número de WhatsApp
     let isAdmin = false;
 
-    let tickets = JSON.parse(localStorage.getItem('rifa_macbook_tickets'));
+    let tickets = JSON.parse(localStorage.getItem('rifa_macbook_secret'));
 
     if (!tickets) {
         tickets = [];
@@ -209,7 +202,7 @@
                 sold: false
             });
         }
-        localStorage.setItem('rifa_macbook_tickets', JSON.stringify(tickets));
+        localStorage.setItem('rifa_macbook_secret', JSON.stringify(tickets));
     }
 
     const grid = document.getElementById('ticketGrid');
@@ -255,15 +248,15 @@
         const ticket = tickets.find(t => t.id === id);
         if (ticket) {
             ticket.sold = !ticket.sold;
-            localStorage.setItem('rifa_macbook_tickets', JSON.stringify(tickets));
+            localStorage.setItem('rifa_macbook_secret', JSON.stringify(tickets));
             filterTickets();
         }
     }
 
     function toggleAdmin() {
         if (!isAdmin) {
-            const pass = prompt("Ingresa la contraseña de administrador:");
-            if (pass === "1234") {
+            const pass = prompt("Contraseña de administrador:");
+            if (pass === "admin1234") { // Puedes cambiar tu contraseña aquí
                 isAdmin = true;
                 alert("Modo Administrador activado. Haz clic en cualquier tarjeta para marcarla como Vendida o Disponible.");
             } else if (pass !== null) {
