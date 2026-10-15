@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gran Rifa - MacBook Pro 13"</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            position: relative;
+        }
+        .admin-bar {
+            text-align: right;
+            margin-bottom: 5px;
+        }
+        .btn-admin {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .banner {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .banner h1 {
+            margin: 0;
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .banner h2 {
+            margin: 8px 0;
+            font-size: 22px;
+            background: #ffeb3b;
+            color: #333;
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+        .banner p {
+            margin: 5px 0 0 0;
+            font-size: 15px;
+        }
+        .details-box {
+            display: flex;
+            justify-content: space-around;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #856404;
+        }
+        .search-box {
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 85%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            outline: none;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 15px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .card {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card.sold {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .card h3 {
+            margin: 0 0 5px 0;
+            color: #2b6cb0;
+            font-size: 18px;
+        }
+        .card.sold h3 {
+            color: #721c24;
+        }
+        .numbers {
+            font-size: 17px;
+            font-weight: bold;
+            color: #2f855a;
+            margin-bottom: 12px;
+        }
+        .card.sold .numbers {
+            color: #e53e3e;
+            text-decoration: line-through;
+        }
+        .btn-wsp {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .sold-badge {
+            background-color: #e53e3e;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="admin-bar">
+        <button class="btn-admin" onclick="toggleAdmin()">🔒 Modo Administrador</button>
+    </div>
+
+    <div class="banner">
+        <h1>🎟️ Gran Rifa Pro</h1>
+        <h2>💻 MacBook Pro 13"</h2>
+        <p>¡Para que estudies, trabajes y cumplas tus sueños![cite: 1]</p>
+    </div>
+
+    <div class="details-box">
+        <div>📅 Sorteo: 28 Nov 2026[cite: 1]</div>
+        <div>🎰 Juega con: Lotería de Boyacá[cite: 1]</div>
+        <div>💰 Valor: $15.000[cite: 1]</div>
+    </div>
+
+    <p style="text-align: center; color: #555;">Busca tu número de boleta o cifra y haz clic en apartar:</p>
+    
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Ej. Boleta #012 o número 451..." onkeyup="filterTickets()">
+    </div>
+
+    <div class="grid" id="ticketGrid"></div>
+</div>
+
+<script>
+    const tuNumeroWhatsApp = "573144781103"; // ⚠️ Reemplaza con tu número de WhatsApp
+    let isAdmin = false;
+
+    let tickets = JSON.parse(localStorage.getItem('rifa_macbook_tickets'));
+
+    if (!tickets) {
+        tickets = [];
+        let availableNumbers = [];
+        for (let i = 0; i <= 999; i++) {
+            availableNumbers.push(String(i).padStart(3, '0'));
+        }
+        availableNumbers.sort(() => Math.random() - 0.5);
+
+        for (let i = 1; i <= 500; i++) {
+            tickets.push({
+                id: i,
+                displayId: `Boleta #${String(i).padStart(3, '0')}`,
+                n1: availableNumbers.pop(),
+                n2: availableNumbers.pop(),
+                sold: false
+            });
+        }
+        localStorage.setItem('rifa_macbook_tickets', JSON.stringify(tickets));
+    }
+
+    const grid = document.getElementById('ticketGrid');
+
+    function renderTickets(data) {
+        grid.innerHTML = '';
+        if (data.length === 0) {
+            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #7f8c8d;">No se encontraron resultados</p>';
+            return;
+        }
+
+        data.forEach(ticket => {
+            const card = document.createElement('div');
+            card.className = `card ${ticket.sold ? 'sold' : ''}`;
+
+            let actionHTML = '';
+            if (ticket.sold) {
+                actionHTML = `<div class="sold-badge">❌ Vendida / Apartada</div>`;
+            } else {
+                const mensaje = `Hola! Quiero apartar la *${ticket.displayId}* (MacBook Pro) que tiene los números: *${ticket.n1} y ${ticket.n2}*.\n\nMis datos son:\nNombre: \nCelular: `;
+                const urlWsp = `https://wa.me/${tuNumeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
+                actionHTML = `<a href="${urlWsp}" target="_blank" class="btn-wsp">📲 Apartar por WhatsApp</a>`;
+            }
+
+            if (isAdmin) {
+                card.style.cursor = 'pointer';
+                card.title = "Haz clic para cambiar estado (Disponible/Vendida)";
+                card.onclick = () => toggleSold(ticket.id);
+            }
+
+            card.innerHTML = `
+                <div>
+                    <h3>${ticket.displayId}</h3>
+                    <div class="numbers">🔢 ${ticket.n1} - ${ticket.n2}</div>
+                </div>
+                ${actionHTML}
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function toggleSold(id) {
+        const ticket = tickets.find(t => t.id === id);
+        if (ticket) {
+            ticket.sold = !ticket.sold;
+            localStorage.setItem('rifa_macbook_tickets', JSON.stringify(tickets));
+            filterTickets();
+        }
+    }
+
+    function toggleAdmin() {
+        if (!isAdmin) {
+            const pass = prompt("Ingresa la contraseña de administrador:");
+            if (pass === "1234") {
+                isAdmin = true;
+                alert("Modo Administrador activado. Haz clic en cualquier tarjeta para marcarla como Vendida o Disponible.");
+            } else if (pass !== null) {
+                alert("Contraseña incorrecta");
+            }
+        } else {
+            isAdmin = false;
+            alert("Modo Administrador desactivado.");
+        }
+        filterTickets();
+    }
+
+    function filterTickets() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = tickets.filter(t => 
+            t.displayId.toLowerCase().includes(query) || 
+            t.n1.includes(query) || 
+            t.n2.includes(query)
+        );
+        renderTickets(filtered);
+    }
+
+    renderTickets(tickets);
+</script>
+
+</body>
+</html>
